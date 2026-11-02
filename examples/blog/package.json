@@ -1,0 +1,11 @@
+{
+  "name": "windsor-example-blog",
+  "private": true,
+  "scripts": {
+    "build": "windsor build",
+    "start": "windsor serve"
+  },
+  "dependencies": {
+    "windsor": "file:../../js"
+  }
+}

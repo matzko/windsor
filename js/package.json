@@ -1,0 +1,25 @@
+{
+  "name": "windsor-framework",
+  "version": "1.0.0",
+  "description": "Node runtime and CLI for the Windsor Elm backend framework",
+  "main": "src/index.js",
+  "bin": {
+    "windsor": "bin/windsor.js"
+  },
+  "keywords": [
+    "windsor",
+    "elm"
+  ],
+  "author": {
+    "name": "Austin Matzko",
+    "email": "austin@pressedcode.com"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@andrewmacmurray/elm-concurrent-task": "^2.0.0",
+    "pg": "^8.23.1"
+  }
+}

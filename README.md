@@ -8,5 +8,5 @@ The Windsor chair was traditionally made from elm.  Beautiful and strong in itse
 
 ## Motivation
 
-I've spent much of my professional life writing applications in Rails and Phoenix, and I'd like to do those kinds of tasks in my favorite language, Elm, shameless borrowing the best ideas from those frameworks.
+I've spent much of my professional life writing applications in Rails and Phoenix, and I'd like to do those kinds of tasks in my favorite language, Elm, shamelessly borrowing the best ideas from those frameworks.
 
