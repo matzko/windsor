@@ -1,0 +1,10 @@
+[tools]
+"npm:elm-format" = "0.8.8"
+
+[tasks.format]
+description = "Format all Elm code"
+run = "elm-format elm/src examples/blog/src --yes"
+
+[tasks."format:check"]
+description = "Fail if any Elm code is unformatted"
+run = "elm-format elm/src examples/blog/src --validate"
