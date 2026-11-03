@@ -1,15 +1,20 @@
 module Windsor exposing
-    ( application, Config, Ports
-    , Program, Model, Msg
+    ( Config
+    , Model
+    , Msg
+    , Ports
+    , Program
+    , application
     )
 
 import ConcurrentTask
 import Json.Decode as Decode exposing (Value)
-import Windsor.Internal.Conn as Conn exposing (Conn(..))
 import Json.Encode as Encode
-import Windsor.Router exposing (Route)
+import Windsor.Internal.Conn as Conn exposing (Conn(..))
 import Windsor.Internal.Protocol as Protocol
 import Windsor.Internal.Router as Router
+import Windsor.Router exposing (Route)
+
 
 {-| -}
 type alias Program =
@@ -58,58 +63,56 @@ application config =
 -}
 update : Config -> Msg -> Model -> ( Model, Cmd Msg )
 update config msg (Model model) =
-            case msg of
-                GotRequest raw ->
-                    case Decode.decodeValue Protocol.envelopeDecoder raw of
-                        Ok { id, request } ->
-                            let
-                                conn =
-                                    Conn.fromRequest request
+    case msg of
+        GotRequest raw ->
+            case Decode.decodeValue Protocol.envelopeDecoder raw of
+                Ok { id, request } ->
+                    let
+                        conn =
+                            Conn.fromRequest request
 
-                                pureConn =
-                                    conn |> (\(Conn c) -> c)
+                        pureConn =
+                            conn |> (\(Conn c) -> c)
 
-                            
-                                ( pool, cmd ) =
-                                    Router.dispatch config.routes conn
-                                        -- |> ConcurrentTask.onError (\error -> ConcurrentTask.succeed (renderError error conn))
-                                        |> ConcurrentTask.onError (\error -> ConcurrentTask.succeed (Conn { pureConn | response = errorResponse 500 "some request error"}))
-                                        |> ConcurrentTask.attempt
-                                            { pool = model.pool
-                                            , send = config.ports.taskSend
-                                            , onComplete = Completed id
-                                            }
-                            in
-                            ( Model { model | pool = pool }, cmd )
-
-                        Err error ->
-                            ( Model model
-                            , config.ports.respond
-                                (Protocol.encodeMalformed
-                                    (Decode.decodeValue (Decode.field "id" Decode.int) raw |> Result.toMaybe)
-                                    (Decode.errorToString error)
-                                )
-                            )
-
-                OnProgress ( pool, cmd ) ->
+                        ( pool, cmd ) =
+                            Router.dispatch config.routes conn
+                                -- |> ConcurrentTask.onError (\error -> ConcurrentTask.succeed (renderError error conn))
+                                |> ConcurrentTask.onError (\error -> ConcurrentTask.succeed (Conn { pureConn | response = errorResponse 500 "some request error" }))
+                                |> ConcurrentTask.attempt
+                                    { pool = model.pool
+                                    , send = config.ports.taskSend
+                                    , onComplete = Completed id
+                                    }
+                    in
                     ( Model { model | pool = pool }, cmd )
 
-                Completed id result ->
-                    let
-                        response =
-                            case result of
-                                ConcurrentTask.Success conn ->
-                                    Conn.response conn
+                Err error ->
+                    ( Model model
+                    , config.ports.respond
+                        (Protocol.encodeMalformed
+                            (Decode.decodeValue (Decode.field "id" Decode.int) raw |> Result.toMaybe)
+                            (Decode.errorToString error)
+                        )
+                    )
 
-                                ConcurrentTask.Error never ->
-                                    Basics.never never
+        OnProgress ( pool, cmd ) ->
+            ( Model { model | pool = pool }, cmd )
 
-                                ConcurrentTask.UnexpectedError error ->
-                                    -- errorResponse 500 (describeUnexpected error)
-                                    errorResponse 500 ("some error")
-                    in
-                    ( Model model, config.ports.respond (Protocol.encodeResponse id response) )
+        Completed id result ->
+            let
+                response =
+                    case result of
+                        ConcurrentTask.Success conn ->
+                            Conn.response conn
 
+                        ConcurrentTask.Error never ->
+                            Basics.never never
+
+                        ConcurrentTask.UnexpectedError error ->
+                            -- errorResponse 500 (describeUnexpected error)
+                            errorResponse 500 "some error"
+            in
+            ( Model model, config.ports.respond (Protocol.encodeResponse id response) )
 
 
 errorResponse : Int -> String -> Conn.Response
@@ -120,11 +123,11 @@ errorResponse status message =
     }
 
 
-{-| Set up subscriptions 
+{-| Set up subscriptions
 -}
 subscriptions : Config -> Model -> Sub Msg
-subscriptions config (Model {pool}) =
-        Sub.batch
+subscriptions config (Model { pool }) =
+    Sub.batch
         [ config.ports.request GotRequest
         , ConcurrentTask.onProgress
             { send = config.ports.taskSend
@@ -133,4 +136,3 @@ subscriptions config (Model {pool}) =
             }
             pool
         ]
-

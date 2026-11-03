@@ -1,4 +1,7 @@
-module Windsor.Request exposing (Request, Method(..), methodToString, methodFromString)
+module Windsor.Request exposing
+    ( Request
+    , Method(..), methodFromString, methodToString
+    )
 
 {-| The incoming HTTP request.
 
@@ -8,9 +11,10 @@ module Windsor.Request exposing (Request, Method(..), methodToString, methodFrom
 
 import Dict exposing (Dict)
 
+
 {-| An incoming request.
 -}
-type alias Request = 
+type alias Request =
     { method : Method
     , url : String
     , headers : Dict String String
@@ -29,6 +33,7 @@ type Method
     | HEAD
     | OPTIONS
     | Other String
+
 
 methodToString : Method -> String
 methodToString method =
@@ -84,4 +89,3 @@ methodFromString string =
 
         other ->
             Other other
-

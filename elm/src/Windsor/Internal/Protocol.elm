@@ -5,7 +5,6 @@ module Windsor.Internal.Protocol exposing
     , envelopeDecoder
     )
 
-
 import Json.Decode as Decode exposing (Decoder)
 import Json.Encode as Encode
 import Windsor.Internal.Conn exposing (Response)
@@ -59,5 +58,3 @@ encodeMalformed id error =
         , ( "id", Maybe.map Encode.int id |> Maybe.withDefault Encode.null )
         , ( "error", Encode.string error )
         ]
-
-

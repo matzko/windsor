@@ -11,4 +11,3 @@ routes =
     Router.through []
         [ Router.get top Pages.home
         ]
-

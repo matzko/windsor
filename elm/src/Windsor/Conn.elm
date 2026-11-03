@@ -2,14 +2,17 @@ module Windsor.Conn exposing (Conn, html)
 
 import Windsor.Internal.Conn as Internal
 
+
 type alias Conn =
     Internal.Conn
+
 
 {-| Respond with HTML.
 -}
 html : String -> Conn -> Conn
 html body =
     putHeader "content-type" "text/html; charset=utf-8" >> putBody body
+
 
 {-| Set a response header.
 -}
@@ -27,13 +30,16 @@ putHeader name value =
             }
         )
 
+
 {-| Set the response body.
 -}
 putBody : String -> Conn -> Conn
 putBody body =
     mapResponse
         (\response ->
-            { response | body = body })
+            { response | body = body }
+        )
+
 
 {-| Apply a function to the response.
 -}

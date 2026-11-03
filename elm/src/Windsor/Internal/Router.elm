@@ -1,18 +1,20 @@
-module Windsor.Internal.Router exposing (Route(..), Handler, dispatch)
+module Windsor.Internal.Router exposing (Handler, Route(..), dispatch)
 
-
-import Url.Parser as Parser exposing (Parser)
-import Windsor.Request exposing (Method)
-import Windsor.Internal.Conn exposing (Conn)
 import ConcurrentTask exposing (ConcurrentTask)
-import Windsor.Internal.Conn exposing (Conn(..))
-import Windsor.Error exposing (Error(..))
 import Url
+import Url.Parser as Parser exposing (Parser)
+import Windsor.Error exposing (Error(..))
+import Windsor.Internal.Conn exposing (Conn(..))
+import Windsor.Request exposing (Method)
 
 
-type alias Handler = Conn -> ConcurrentTask Error Conn
+type alias Handler =
+    Conn -> ConcurrentTask Error Conn
 
-type Route = Route { method : Method, parser : Parser (Handler -> Handler) Handler }
+
+type Route
+    = Route { method : Method, parser : Parser (Handler -> Handler) Handler }
+
 
 dispatch : List Route -> Conn -> ConcurrentTask Error Conn
 dispatch routes ((Conn { request }) as conn) =
@@ -37,4 +39,3 @@ dispatch routes ((Conn { request }) as conn) =
 
         Nothing ->
             ConcurrentTask.fail NotFound
-
