@@ -1,8 +1,8 @@
 module Controllers.Pages exposing (home)
 
-import Windsor.Task as Task exposing (Task)
 import Windsor.Conn as Conn exposing (Conn)
 import Windsor.Error exposing (Error)
+import Windsor.Task as Task exposing (Task)
 
 
 home : Conn -> Task Error Conn
