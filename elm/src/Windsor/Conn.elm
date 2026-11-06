@@ -1,4 +1,4 @@
-module Windsor.Conn exposing (Conn, html)
+module Windsor.Conn exposing (Conn, html, putHeader, putStatus)
 
 import Windsor.Internal.Conn as Internal
 
@@ -12,6 +12,13 @@ type alias Conn =
 html : String -> Conn -> Conn
 html body =
     putHeader "content-type" "text/html; charset=utf-8" >> putBody body
+
+
+{-| Set the response status code.
+-}
+putStatus : Int -> Conn -> Conn
+putStatus status =
+    mapResponse (\response -> { response | status = status })
 
 
 {-| Set a response header.

@@ -4,7 +4,14 @@
     "summary": "A backend framework for Elm",
     "license": "MIT",
     "version": "1.0.0",
-    "exposed-modules": [],
+    "exposed-modules": [
+        "Windsor",
+        "Windsor.Conn",
+        "Windsor.Request",
+        "Windsor.Router",
+        "Windsor.Error",
+        "Windsor.Task"
+    ],
     "elm-version": "0.19.0 <= v < 0.20.0",
     "dependencies": {
         "andrewMacmurray/elm-concurrent-task": "2.0.0 <= v < 3.0.0",

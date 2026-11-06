@@ -10,9 +10,11 @@ module Windsor exposing
 import ConcurrentTask
 import Json.Decode as Decode exposing (Value)
 import Json.Encode as Encode
+import Windsor.Error as Error exposing (Error(..))
 import Windsor.Internal.Conn as Conn exposing (Conn(..))
 import Windsor.Internal.Protocol as Protocol
 import Windsor.Internal.Router as Router
+import Windsor.Internal.Task as Task
 import Windsor.Router exposing (Route)
 
 
@@ -25,6 +27,7 @@ type alias Program =
 type alias Config =
     { ports : Ports
     , routes : List Route
+    , renderError : Error -> Conn -> Conn
     }
 
 
@@ -76,8 +79,8 @@ update config msg (Model model) =
 
                         ( pool, cmd ) =
                             Router.dispatch config.routes conn
-                                -- |> ConcurrentTask.onError (\error -> ConcurrentTask.succeed (renderError error conn))
-                                |> ConcurrentTask.onError (\error -> ConcurrentTask.succeed (Conn { pureConn | response = errorResponse 500 "some request error" }))
+                                |> Task.toConcurrent
+                                |> ConcurrentTask.onError (\error -> ConcurrentTask.succeed (config.renderError error conn))
                                 |> ConcurrentTask.attempt
                                     { pool = model.pool
                                     , send = config.ports.taskSend
@@ -109,8 +112,7 @@ update config msg (Model model) =
                             Basics.never never
 
                         ConcurrentTask.UnexpectedError error ->
-                            -- errorResponse 500 (describeUnexpected error)
-                            errorResponse 500 "some error"
+                            errorResponse 500 (describeUnexpected error)
             in
             ( Model model, config.ports.respond (Protocol.encodeResponse id response) )
 
@@ -121,6 +123,30 @@ errorResponse status message =
     , headers = [ ( "content-type", "application/json" ) ]
     , body = Encode.encode 0 (Encode.object [ ( "error", Encode.string message ) ])
     }
+
+
+renderError : Config -> Error -> Conn -> Conn
+renderError config error conn =
+    config.renderError error conn
+
+
+describeUnexpected : ConcurrentTask.UnexpectedError -> String
+describeUnexpected unexpected =
+    case unexpected of
+        ConcurrentTask.UnhandledJsException { function, message } ->
+            function ++ " threw: " ++ message
+
+        ConcurrentTask.ResponseDecoderFailure { function, error } ->
+            function ++ " returned unexpected data: " ++ Decode.errorToString error
+
+        ConcurrentTask.ErrorsDecoderFailure { function, error } ->
+            function ++ " returned unexpected error data: " ++ Decode.errorToString error
+
+        ConcurrentTask.MissingFunction function ->
+            "No JS task registered for " ++ function
+
+        ConcurrentTask.InternalError message ->
+            "elm-concurrent-task internal error: " ++ message
 
 
 {-| Set up subscriptions

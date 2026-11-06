@@ -1,9 +1,9 @@
 module Windsor.Router exposing (Handler, Route, get, through)
 
-import ConcurrentTask
 import Url.Parser as Parser exposing (Parser)
 import Windsor.Internal.Router as Internal
 import Windsor.Request exposing (Method(..))
+import Windsor.Task as Task
 
 
 type alias Route =
@@ -38,7 +38,7 @@ route method parser handler =
 
 withPlugs : List Handler -> Handler -> Handler
 withPlugs plugs handler conn =
-    List.foldl (\plug task -> ConcurrentTask.andThen plug task)
-        (ConcurrentTask.succeed conn)
+    List.foldl (\plug task -> Task.andThen plug task)
+        (Task.succeed conn)
         plugs
-        |> ConcurrentTask.andThen handler
+        |> Task.andThen handler
