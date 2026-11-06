@@ -10,8 +10,9 @@ module Windsor exposing
 import ConcurrentTask
 import Json.Decode as Decode exposing (Value)
 import Json.Encode as Encode
-import Windsor.Error as Error exposing (Error(..))
-import Windsor.Internal.Conn as Conn exposing (Conn(..))
+import Windsor.Conn exposing (Conn)
+import Windsor.Error exposing (Error)
+import Windsor.Internal.Conn as Conn
 import Windsor.Internal.Protocol as Protocol
 import Windsor.Internal.Router as Router
 import Windsor.Internal.Task as Task
@@ -71,11 +72,9 @@ update config msg (Model model) =
             case Decode.decodeValue Protocol.envelopeDecoder raw of
                 Ok { id, request } ->
                     let
+                        conn : Conn
                         conn =
                             Conn.fromRequest request
-
-                        pureConn =
-                            conn |> (\(Conn c) -> c)
 
                         ( pool, cmd ) =
                             Router.dispatch config.routes conn
@@ -103,6 +102,7 @@ update config msg (Model model) =
 
         Completed id result ->
             let
+                response : Conn.Response
                 response =
                     case result of
                         ConcurrentTask.Success conn ->
@@ -123,11 +123,6 @@ errorResponse status message =
     , headers = [ ( "content-type", "application/json" ) ]
     , body = Encode.encode 0 (Encode.object [ ( "error", Encode.string message ) ])
     }
-
-
-renderError : Config -> Error -> Conn -> Conn
-renderError config error conn =
-    config.renderError error conn
 
 
 describeUnexpected : ConcurrentTask.UnexpectedError -> String

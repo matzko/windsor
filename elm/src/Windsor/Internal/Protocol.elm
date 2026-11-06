@@ -1,6 +1,5 @@
 module Windsor.Internal.Protocol exposing
-    ( encodeBoot
-    , encodeMalformed
+    ( encodeMalformed
     , encodeResponse
     , envelopeDecoder
     )
@@ -9,11 +8,6 @@ import Json.Decode as Decode exposing (Decoder)
 import Json.Encode as Encode
 import Windsor.Internal.Conn exposing (Response)
 import Windsor.Request as Request exposing (Request)
-
-
-version : Int
-version =
-    1
 
 
 envelopeDecoder : Decoder { id : Int, request : Request }
@@ -30,14 +24,6 @@ requestDecoder =
         (Decode.field "url" Decode.string)
         (Decode.field "headers" (Decode.dict Decode.string))
         (Decode.field "body" Decode.string)
-
-
-encodeBoot : Encode.Value
-encodeBoot =
-    Encode.object
-        [ ( "type", Encode.string "boot" )
-        , ( "protocol", Encode.int version )
-        ]
 
 
 encodeResponse : Int -> Response -> Encode.Value

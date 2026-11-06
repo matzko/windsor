@@ -2,7 +2,6 @@ module Windsor.Internal.Task exposing
     ( Errors(..)
     , Expect(..)
     , Task(..)
-    , fromConcurrent
     , toConcurrent
     )
 
@@ -22,11 +21,6 @@ type Expect a
 
 type Errors x
     = Errors (ConcurrentTask.Errors x)
-
-
-fromConcurrent : ConcurrentTask x a -> Task x a
-fromConcurrent =
-    Task
 
 
 toConcurrent : Task x a -> ConcurrentTask x a

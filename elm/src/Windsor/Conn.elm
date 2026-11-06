@@ -26,6 +26,7 @@ putStatus status =
 putHeader : String -> String -> Conn -> Conn
 putHeader name value =
     let
+        key : String
         key =
             String.toLower name
     in

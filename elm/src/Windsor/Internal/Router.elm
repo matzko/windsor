@@ -19,6 +19,7 @@ type Route
 dispatch : List Route -> Conn -> Task Error Conn
 dispatch routes ((Conn { request }) as conn) =
     let
+        parsers : List (Parser (Handler -> Handler) Handler)
         parsers =
             List.filterMap
                 (\(Route route) ->
