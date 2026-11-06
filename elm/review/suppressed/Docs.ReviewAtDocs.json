@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "automatically created by": "elm-review suppress",
+  "learn more": "elm-review suppress --help",
+  "suppressions": [
+    { "count": 6, "filePath": "src/Windsor.elm" },
+    { "count": 4, "filePath": "src/Windsor/Conn.elm" },
+    { "count": 4, "filePath": "src/Windsor/Router.elm" },
+    { "count": 3, "filePath": "src/Windsor/Request.elm" }
+  ]
+}
