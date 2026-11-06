@@ -1,17 +1,28 @@
 [tools]
 elm = { version = "0.19.1", bin = "elm" }
 "github:avh4/elm-format" = "0.8.8"
+"npm:elm-review" = "2.13.5"
 "npm:elm-test" = "0.19.1-revision16"
 
 [tasks.format]
 description = "Format all Elm code"
-run = "elm-format elm/src elm/tests examples/blog/src --yes"
+run = "elm-format elm/src elm/tests elm/review/src examples/blog/src --yes"
 
 [tasks."format:check"]
 description = "Fail if any Elm code is unformatted"
-run = "elm-format elm/src elm/tests examples/blog/src --validate"
+run = "elm-format elm/src elm/tests elm/review/src examples/blog/src --validate"
 
 [tasks.test]
 description = "Run the Elm test suite"
 dir = "elm"
 run = "elm-test"
+
+[tasks.review]
+description = "Run elm-review on the Elm package"
+dir = "elm"
+run = "elm-review"
+
+[tasks."review:fix"]
+description = "Run elm-review and interactively apply automatic fixes"
+dir = "elm"
+run = "elm-review --fix"

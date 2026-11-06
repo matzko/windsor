@@ -1,10 +1,7 @@
 {
     "type": "application",
-    "source-directories": [
-        "src",
-        "../../elm/src"
-    ],
-    "elm-version": "0.19.3",
+    "source-directories": ["src", "../../elm/src"],
+    "elm-version": "0.19.1",
     "dependencies": {
         "direct": {
             "andrewMacmurray/elm-concurrent-task": "2.0.0",
