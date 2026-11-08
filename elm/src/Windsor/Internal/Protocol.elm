@@ -1,5 +1,6 @@
 module Windsor.Internal.Protocol exposing
-    ( encodeMalformed
+    ( encodeFatal
+    , encodeMalformed
     , encodeResponse
     , envelopeDecoder
     )
@@ -42,5 +43,15 @@ encodeMalformed id error =
     Encode.object
         [ ( "type", Encode.string "malformed" )
         , ( "id", Maybe.map Encode.int id |> Maybe.withDefault Encode.null )
+        , ( "error", Encode.string error )
+        ]
+
+
+{-| The app cannot run (e.g. bad environment); the host should exit.
+-}
+encodeFatal : String -> Encode.Value
+encodeFatal error =
+    Encode.object
+        [ ( "type", Encode.string "fatal" )
         , ( "error", Encode.string error )
         ]

@@ -8,11 +8,12 @@ module Windsor exposing
     )
 
 import ConcurrentTask
-import Json.Decode as Decode exposing (Value)
+import Json.Decode as Decode exposing (Decoder, Value)
 import Json.Encode as Encode
-import Windsor.Conn exposing (Conn)
+import Windsor.Conn exposing (Conn, Sent)
 import Windsor.Error exposing (Error)
 import Windsor.Internal.Conn as Conn
+import Windsor.Internal.Env as Env
 import Windsor.Internal.Protocol as Protocol
 import Windsor.Internal.Router as Router
 import Windsor.Internal.Task as Task
@@ -24,11 +25,13 @@ type alias Program =
     Platform.Program Value Model Msg
 
 
-{-| -}
-type alias Config =
+{-| The configuration for a Windsor application.
+-}
+type alias Config env =
     { ports : Ports
-    , routes : List Route
-    , renderError : Error -> Conn -> Conn
+    , envDecoder : Decoder env
+    , routes : env -> List (Route ())
+    , renderError : env -> Error -> Conn () -> Sent
     }
 
 
@@ -43,43 +46,70 @@ type alias Ports =
 
 {-| -}
 type Model
-    = Model { pool : ConcurrentTask.Pool Msg }
+    = Model
+        { pool : ConcurrentTask.Pool Msg
+        , app : Result String App
+        }
+
+
+{-| Configuration determined at application startup, such as the nested routes,
+which are dependent on environment variables.
+-}
+type alias App =
+    { routes : List (Route ())
+    , renderError : Error -> Conn () -> Sent
+    }
 
 
 {-| -}
 type Msg
     = GotRequest Value
     | OnProgress ( ConcurrentTask.Pool Msg, Cmd Msg )
-    | Completed Int (ConcurrentTask.Response Never Conn)
+    | Completed Int (ConcurrentTask.Response Never Sent)
 
 
 {-| -}
-application : Config -> Program
+application : Config env -> Program
 application config =
     Platform.worker
-        { init = \_ -> ( Model { pool = ConcurrentTask.pool }, config.ports.respond Encode.null )
+        { init = init config
         , update = update config
         , subscriptions = subscriptions config
         }
 
 
-{-| Update the model based on incoming messages.
--}
-update : Config -> Msg -> Model -> ( Model, Cmd Msg )
+init : Config env -> Value -> ( Model, Cmd Msg )
+init config flags =
+    case Env.decode config.envDecoder flags of
+        Ok env ->
+            ( Model
+                { pool = ConcurrentTask.pool
+                , app = Ok { routes = config.routes env, renderError = config.renderError env }
+                }
+            , config.ports.respond Encode.null
+            )
+
+        Err message ->
+            ( Model { pool = ConcurrentTask.pool, app = Err message }
+            , config.ports.respond (Protocol.encodeFatal message)
+            )
+
+
+update : Config env -> Msg -> Model -> ( Model, Cmd Msg )
 update config msg (Model model) =
     case msg of
         GotRequest raw ->
-            case Decode.decodeValue Protocol.envelopeDecoder raw of
-                Ok { id, request } ->
+            case ( Decode.decodeValue Protocol.envelopeDecoder raw, model.app ) of
+                ( Ok { id, request }, Ok app ) ->
                     let
-                        conn : Conn
+                        conn : Conn ()
                         conn =
                             Conn.fromRequest request
 
                         ( pool, cmd ) =
-                            Router.dispatch config.routes conn
+                            Router.dispatch app.routes conn
                                 |> Task.toConcurrent
-                                |> ConcurrentTask.onError (\error -> ConcurrentTask.succeed (config.renderError error conn))
+                                |> ConcurrentTask.onError (\error -> ConcurrentTask.succeed (app.renderError error conn))
                                 |> ConcurrentTask.attempt
                                     { pool = model.pool
                                     , send = config.ports.taskSend
@@ -88,7 +118,12 @@ update config msg (Model model) =
                     in
                     ( Model { model | pool = pool }, cmd )
 
-                Err error ->
+                ( Ok { id }, Err _ ) ->
+                    ( Model model
+                    , config.ports.respond (Protocol.encodeResponse id (errorResponse 500 "Server misconfigured"))
+                    )
+
+                ( Err error, _ ) ->
                     ( Model model
                     , config.ports.respond
                         (Protocol.encodeMalformed
@@ -105,8 +140,8 @@ update config msg (Model model) =
                 response : Conn.Response
                 response =
                     case result of
-                        ConcurrentTask.Success conn ->
-                            Conn.response conn
+                        ConcurrentTask.Success sent ->
+                            Conn.sentResponse sent
 
                         ConcurrentTask.Error never ->
                             Basics.never never
@@ -144,9 +179,7 @@ describeUnexpected unexpected =
             "elm-concurrent-task internal error: " ++ message
 
 
-{-| Set up subscriptions
--}
-subscriptions : Config -> Model -> Sub Msg
+subscriptions : Config env -> Model -> Sub Msg
 subscriptions config (Model { pool }) =
     Sub.batch
         [ config.ports.request GotRequest

@@ -1,10 +1,23 @@
-module Windsor.Internal.Conn exposing (Conn(..), Response, fromRequest, response)
+module Windsor.Internal.Conn exposing (Conn(..), Response, Sent(..), fromRequest, sentResponse)
 
 import Windsor.Request exposing (Request)
 
 
-type Conn
-    = Conn { request : Request, response : Response }
+{-| The connection for one request (request, status, headers, and context established by router plugs).
+-}
+type Conn ctx
+    = Conn
+        { request : Request
+        , status : Int
+        , headers : List ( String, String )
+        , context : ctx
+        }
+
+
+{-| A finished response. Ensures that handlers cannot finish successfully without a well-formed response.
+-}
+type Sent
+    = Sent Response
 
 
 type alias Response =
@@ -14,14 +27,11 @@ type alias Response =
     }
 
 
-fromRequest : Request -> Conn
+fromRequest : Request -> Conn ()
 fromRequest request =
-    Conn
-        { request = request
-        , response = { status = 200, headers = [], body = "" }
-        }
+    Conn { request = request, status = 200, headers = [], context = () }
 
 
-response : Conn -> Response
-response (Conn conn) =
-    conn.response
+sentResponse : Sent -> Response
+sentResponse (Sent response) =
+    response

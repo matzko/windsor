@@ -1,56 +1,104 @@
-module Windsor.Conn exposing (Conn, html, putHeader, putStatus)
+module Windsor.Conn exposing
+    ( Conn, Sent
+    , request, context
+    , putStatus, putHeader
+    , render, redirect, sendStatus
+    )
 
+{-| The connection for one request.
+
+@docs Conn, Sent
+@docs request, context
+@docs putStatus, putHeader
+@docs render, redirect, sendStatus
+
+-}
+
+import Dict
 import Windsor.Internal.Conn as Internal
+import Windsor.Internal.View as View
+import Windsor.Request exposing (Request)
+import Windsor.View exposing (View)
 
 
-type alias Conn =
-    Internal.Conn
-
-
-{-| Respond with HTML.
+{-| The connection for one request (request, status, headers, and context established by router plugs).
 -}
-html : String -> Conn -> Conn
-html body =
-    putHeader "content-type" "text/html; charset=utf-8" >> putBody body
+type alias Conn ctx =
+    Internal.Conn ctx
 
 
-{-| Set the response status code.
+{-| A finished response; the end state of every handler.
 -}
-putStatus : Int -> Conn -> Conn
-putStatus status =
-    mapResponse (\response -> { response | status = status })
+type alias Sent =
+    Internal.Sent
 
 
-{-| Set a response header.
+{-| The incoming request.
 -}
-putHeader : String -> String -> Conn -> Conn
-putHeader name value =
+request : Conn ctx -> Request
+request (Internal.Conn conn) =
+    conn.request
+
+
+{-| What the enclosing scopes' plugs established.
+-}
+context : Conn ctx -> ctx
+context (Internal.Conn conn) =
+    conn.context
+
+
+{-| Set the status the response will be sent with. Defaults to 200.
+-}
+putStatus : Int -> Conn ctx -> Conn ctx
+putStatus status (Internal.Conn conn) =
+    Internal.Conn { conn | status = status }
+
+
+{-| Set a response header, replacing any existing header of the same name.
+Names are case-insensitive and stored lowercased.
+-}
+putHeader : String -> String -> Conn ctx -> Conn ctx
+putHeader name value (Internal.Conn conn) =
     let
         key : String
         key =
             String.toLower name
     in
-    mapResponse
-        (\response ->
-            { response
-                | headers =
-                    List.filter (\( k, _ ) -> k /= key) response.headers ++ [ ( key, value ) ]
-            }
-        )
+    Internal.Conn { conn | headers = List.filter (\( k, _ ) -> k /= key) conn.headers ++ [ ( key, value ) ] }
 
 
-{-| Set the response body.
+{-| Respond by rendering `data` with a view, negotiating the format.
+Responds 406 if the client accepts none of the view's formats.
 -}
-putBody : String -> Conn -> Conn
-putBody body =
-    mapResponse
-        (\response ->
-            { response | body = body }
-        )
+render : View data -> data -> Conn ctx -> Sent
+render view data ((Internal.Conn c) as conn) =
+    case View.negotiate (Dict.get "accept" c.request.headers) view of
+        Just format ->
+            conn
+                |> putHeader "content-type" format.contentType
+                |> finish (format.render data)
+
+        Nothing ->
+            conn
+                |> putStatus 406
+                |> putHeader "content-type" "text/plain; charset=utf-8"
+                |> finish "Not Acceptable"
 
 
-{-| Apply a function to the response.
+{-| Respond with a 302 redirect.
 -}
-mapResponse : (Internal.Response -> Internal.Response) -> Conn -> Conn
-mapResponse f (Internal.Conn conn) =
-    Internal.Conn { conn | response = f conn.response }
+redirect : String -> Conn ctx -> Sent
+redirect location =
+    putStatus 302 >> putHeader "location" location >> finish ""
+
+
+{-| Respond with a status and no body, e.g. 204.
+-}
+sendStatus : Int -> Conn ctx -> Sent
+sendStatus status =
+    putStatus status >> finish ""
+
+
+finish : String -> Conn ctx -> Sent
+finish body (Internal.Conn conn) =
+    Internal.Sent { status = conn.status, headers = conn.headers, body = body }
