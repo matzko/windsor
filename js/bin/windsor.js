@@ -46,5 +46,5 @@ function serve() {
     process.exit(1);
   }
   const { Elm } = require(compiled);
-  start({ Elm });
+  start({ Elm, port: Number(process.env.PORT) || 3000, env: process.env });
 }

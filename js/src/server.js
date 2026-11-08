@@ -10,8 +10,8 @@ const PORT_NAMES = [
   "windsorTaskReceive",
 ];
 
-function start({ Elm, port = 3000, tasks = {}, log = console }) {
-  const app = Elm.Main.init({ flags: null });
+function start({ Elm, port = 3000, env = {}, tasks = {}, log = console }) {
+  const app = Elm.Main.init({ flags: { env } });
 
   for (const name of PORT_NAMES) {
     if (!app.ports?.[name]) {
@@ -42,6 +42,9 @@ function start({ Elm, port = 3000, tasks = {}, log = console }) {
       case "response":
         finish(message.id, message.status, message.headers, message.body);
         break;
+      case "fatal":
+        log.error(message.error);
+        process.exit(1);
     }
   });
 

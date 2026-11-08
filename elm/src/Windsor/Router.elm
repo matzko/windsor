@@ -1,44 +1,56 @@
-module Windsor.Router exposing (Handler, Route, get, through)
+module Windsor.Router exposing (Route, Handler, get, post, scope)
+
+{-|
+
+@docs Route, Handler, get, post, scope
+
+-}
 
 import Url.Parser as Parser exposing (Parser)
 import Windsor.Internal.Router as Internal
+import Windsor.Plug exposing (Plug)
 import Windsor.Request exposing (Method(..))
-import Windsor.Task as Task
 
 
-type alias Route =
-    Internal.Route
-
-
-type alias Handler =
-    Internal.Handler
-
-
-{-| Run plugs, in order, before each of the given routes' handlers.
+{-| A route whose handler expects context `ctx`.
 -}
-through : List Handler -> List Route -> List Route
-through plugs =
-    List.map
-        (\(Internal.Route r) ->
-            Internal.Route { r | parser = Parser.map (withPlugs plugs) r.parser }
-        )
+type alias Route ctx =
+    Internal.Route ctx
 
 
-get : Parser handler Handler -> handler -> Route
+{-| -}
+type alias Handler ctx =
+    Internal.Handler ctx
+
+
+{-| -}
+get : Parser handler (Handler ctx) -> handler -> Route ctx
 get =
     route GET
 
 
-{-| A route for any method.
+{-| -}
+post : Parser handler (Handler ctx) -> handler -> Route ctx
+post =
+    route POST
+
+
+{-| Run a plug before every route inside, converting the outer context into
+the one those routes' handlers expect. Scopes nest.
 -}
-route : Method -> Parser handler Handler -> handler -> Route
+scope : Plug parent child -> List (Route child) -> Route parent
+scope plug children =
+    Internal.Route
+        (List.concatMap
+            (\(Internal.Route entries) ->
+                List.map
+                    (\entry -> { method = entry.method, match = entry.match >> Maybe.map (Internal.through plug) })
+                    entries
+            )
+            children
+        )
+
+
+route : Method -> Parser handler (Handler ctx) -> handler -> Route ctx
 route method parser handler =
-    Internal.Route { method = method, parser = Parser.map handler parser }
-
-
-withPlugs : List Handler -> Handler -> Handler
-withPlugs plugs handler conn =
-    List.foldl (\plug task -> Task.andThen plug task)
-        (Task.succeed conn)
-        plugs
-        |> Task.andThen handler
+    Internal.Route [ { method = method, match = Parser.parse (Parser.map handler parser) } ]
