@@ -6,6 +6,9 @@
   "bin": {
     "windsor": "bin/windsor.js"
   },
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  },
   "keywords": [
     "windsor",
     "elm"
