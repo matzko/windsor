@@ -24,7 +24,11 @@ if (!command) {
 
 Commands:
   build     Compile src/Main.elm
-  serve     Run the compiled app in build/elm.js`);
+  serve     Run the compiled app in build/elm.js
+
+Environment:
+  WINDSOR_ENV  development (default), test, or production. In development,
+               \`serve\` loads variables from ./.env if it exists.`);
   process.exit(process.argv[2] ? 1 : 0);
 }
 command();
@@ -45,8 +49,13 @@ function serve() {
     console.error(`${OUTPUT} not found. Run \`windsor build\` first.`);
     process.exit(1);
   }
+  // .env is a development convenience only: tests must control their own
+  // environment, and production should get its config from the deployment.
+  const mode = process.env.WINDSOR_ENV || "development";
   const envFile = path.join(cwd, ".env");
-  if (fs.existsSync(envFile)) process.loadEnvFile(envFile);
+  if (mode === "development" && fs.existsSync(envFile)) {
+    process.loadEnvFile(envFile);
+  }
   const { Elm } = require(compiled);
   start({ Elm, port: Number(process.env.PORT) || 3000, env: process.env });
 }
