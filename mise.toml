@@ -6,16 +6,21 @@ elm = { version = "0.19.1", bin = "elm" }
 
 [tasks.format]
 description = "Format all Elm code"
-run = "elm-format elm/src elm/tests elm/review/src examples/blog/src --yes"
+run = "elm-format elm/src elm/tests elm/review/src examples/blog/src js/test/fixtures --yes"
 
 [tasks."format:check"]
 description = "Fail if any Elm code is unformatted"
-run = "elm-format elm/src elm/tests elm/review/src examples/blog/src --validate"
+run = "elm-format elm/src elm/tests elm/review/src examples/blog/src js/test/fixtures --validate"
 
 [tasks.test]
 description = "Run the Elm test suite"
 dir = "elm"
 run = "elm-test"
+
+[tasks."test:js"]
+description = "Run the JS runtime tests: the blog example end to end, and compile-time type errors"
+dir = "js"
+run = "npm test"
 
 [tasks.review]
 description = "Run elm-review on the Elm package"
