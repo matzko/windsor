@@ -45,6 +45,8 @@ function serve() {
     console.error(`${OUTPUT} not found. Run \`windsor build\` first.`);
     process.exit(1);
   }
+  const envFile = path.join(cwd, ".env");
+  if (fs.existsSync(envFile)) process.loadEnvFile(envFile);
   const { Elm } = require(compiled);
   start({ Elm, port: Number(process.env.PORT) || 3000, env: process.env });
 }
