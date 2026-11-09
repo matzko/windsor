@@ -34,11 +34,12 @@ function freePort() {
   });
 }
 
-// Only PATH is inherited, so the developer's own environment can't leak in.
+// Only PATH is inherited, so the developer's own environment can't leak in,
+// and WINDSOR_ENV=test keeps `serve` from loading their .env file.
 function serve(env) {
   const child = spawn(process.execPath, [WINDSOR, "serve"], {
     cwd: BLOG,
-    env: { PATH: process.env.PATH, ...env },
+    env: { PATH: process.env.PATH, WINDSOR_ENV: "test", ...env },
     stdio: ["ignore", "pipe", "pipe"],
   });
   child.output = { stdout: "", stderr: "" };
